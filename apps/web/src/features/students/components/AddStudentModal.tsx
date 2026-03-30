@@ -88,7 +88,7 @@ export default function AddStudentModal({open, onClose, onCreated}: Props) {
                 }}
             >
                 {/* ---------------- STUDENT ---------------- */}
-                <Divider orientation="left">Schüler</Divider>
+                <Divider orientation="horizontal" titlePlacement="left">Schüler</Divider>
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
@@ -127,7 +127,7 @@ export default function AddStudentModal({open, onClose, onCreated}: Props) {
                 </Row>
 
                 {/* ---------------- COLLECTORS ---------------- */}
-                <Divider orientation="left">Abholberechtigten</Divider>
+                <Divider orientation="horizontal" titlePlacement="left">Abholberechtigten</Divider>
 
                 <Form.List
                     name="collectors"

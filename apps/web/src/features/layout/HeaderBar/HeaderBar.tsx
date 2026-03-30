@@ -1,6 +1,6 @@
 'use client';
 
-import {Layout, Avatar, Dropdown, Menu} from 'antd';
+import {Layout, Avatar, Dropdown} from 'antd';
 import {
     BellOutlined,
     UserOutlined,
@@ -18,16 +18,27 @@ export type HeaderBarProps = {
 
 export default function HeaderBar({title = 'Panel Hort', userName = 'Gianny'}: HeaderBarProps) {
 
-    const userMenu = (
-        <Menu
-            items={[
-                { key: 'profile', icon: <UserOutlined />, label: 'Mein Profil' },
-                { key: 'settings', icon: <SettingOutlined />, label: 'Einstellungen' },
-                { type: 'divider' },
-                { key: 'logout', icon: <LogoutOutlined />, label: 'Abmelden' },
-            ]}
-        />
-    );
+    const userMenu = {
+        items: [
+            { key: "profile", icon: <UserOutlined />, label: "Mein Profil" },
+            { key: "settings", icon: <SettingOutlined />, label: "Einstellungen" },
+            { type: "divider" as const },
+            { key: "logout", icon: <LogoutOutlined />, label: "Abmelden" },
+        ],
+        onClick: ({ key }: { key: string }) => {
+            switch (key) {
+                case "profile":
+                    console.log("profile");
+                    break;
+                case "settings":
+                    console.log("settings");
+                    break;
+                case "logout":
+                    console.log("logout");
+                    break;
+            }
+        },
+    };
 
     return (
         <Header className={styles.headerRoot}>
@@ -37,8 +48,7 @@ export default function HeaderBar({title = 'Panel Hort', userName = 'Gianny'}: H
                 <button className={styles.iconButton} aria-label="Benachrichtigungen">
                     <BellOutlined />
                 </button>
-
-                <Dropdown overlay={userMenu} placement="bottomRight" trigger={['click']}>
+                <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
                     <button className={styles.userButton}>
                         <Avatar
                             size="small"
