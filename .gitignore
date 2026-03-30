@@ -1,0 +1,95 @@
+############################################
+# ROOT / MONOREPO
+############################################
+
+# dependencies
+node_modules
+.pnpm-store
+.pnpm-debug.log*
+
+# turbo
+.turbo
+
+# lock files (SÍ se debe versionar pnpm-lock.yaml)
+# (NO ignores pnpm-lock.yaml)
+# package-lock.json
+# yarn.lock
+
+############################################
+# BUILD OUTPUTS (GENERAL)
+############################################
+
+dist
+build
+out
+coverage
+
+############################################
+# NEXT.JS (apps/web)
+############################################
+
+apps/web/.next
+apps/web/out
+apps/web/build
+
+# next image cache
+apps/web/.next/cache
+
+############################################
+# EXPO / REACT NATIVE (apps/mobile)
+############################################
+
+# Expo
+apps/mobile/.expo
+apps/mobile/.expo-shared
+
+# React Native / Metro
+apps/mobile/.metro-cache
+apps/mobile/android/.gradle
+apps/mobile/android/app/build
+apps/mobile/ios/build
+apps/mobile/ios/Pods
+
+# Expo build output
+apps/mobile/dist
+
+############################################
+# ENV FILES
+############################################
+
+.env
+.env.local
+.env.*.local
+
+# opcional: si usas env por app
+apps/web/.env*
+apps/mobile/.env*
+
+############################################
+# TYPESCRIPT
+############################################
+
+*.tsbuildinfo
+
+############################################
+# LOGS
+############################################
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+############################################
+# IDE / OS
+############################################
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# IDEs
+.idea
+.vscode
