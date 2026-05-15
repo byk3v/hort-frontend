@@ -1,5 +1,11 @@
 type QueryParams = Record<string, string | number | boolean | undefined>;
 
+let accessTokenProvider: (() => Promise<string | undefined>) | undefined;
+
+export function setAccessTokenProvider(provider: () => Promise<string | undefined>) {
+    accessTokenProvider = provider;
+}
+
 function buildQueryString(params?: QueryParams) {
     if (!params) return "";
 
@@ -15,22 +21,29 @@ function buildQueryString(params?: QueryParams) {
     return query ? `?${query}` : "";
 }
 
+async function buildHeaders(extra?: HeadersInit): Promise<HeadersInit> {
+    const token = await accessTokenProvider?.();
+
+    return {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...extra,
+    };
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
     if (!res.ok) {
         throw new Error(`HTTP error ${res.status}`);
     }
 
-    // @ts-ignore
-    return res.json();
+    return res.json() as Promise<T>;
 }
 
 export const api = {
     async get<T>(url: string, params?: QueryParams): Promise<T> {
         const res = await fetch(`${url}${buildQueryString(params)}`, {
             method: "GET",
-            headers: {
-                Accept: "application/json",
-            },
+            headers: await buildHeaders(),
             cache: "no-store",
         });
 
@@ -40,10 +53,9 @@ export const api = {
     async post<T>(url: string, body?: unknown): Promise<T> {
         const res = await fetch(url, {
             method: "POST",
-            headers: {
-                Accept: "application/json",
+            headers: await buildHeaders({
                 "content-type": "application/json",
-            },
+            }),
             body: JSON.stringify(body),
         });
 

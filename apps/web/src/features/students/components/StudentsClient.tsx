@@ -16,7 +16,9 @@ export default function StudentsClient() {
     const [name, setName] = useState<string>('');
     const [groupId, setGroupId] = useState<number | undefined>(undefined);
     const [openAdd, setOpenAdd] = useState(false);
-
+    useEffect(() => {
+        console.log("StudentsClient mounted");
+    }, []);
     const load = async () => {
         try {
             setLoading(true);

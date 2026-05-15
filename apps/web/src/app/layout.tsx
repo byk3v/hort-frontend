@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { ConfigProvider } from 'antd';
 import '../styles/globals.css';
 import AppShell from "@/src/features/layout/AppShell";
-
+import {AuthProvider} from "@/src/auth/AuthProvider";
+// import { AuthProvider } from "@/auth/AuthProvider";
 export const metadata: Metadata = { title: 'HortApp', description: 'Panel Hort' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="es">
         <body>
         <ConfigProvider>
-            <AppShell>{children}</AppShell>
+            <AuthProvider>
+                <AppShell>{children}</AppShell>
+            </AuthProvider>
         </ConfigProvider>
         </body>
         </html>

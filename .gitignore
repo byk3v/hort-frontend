@@ -62,7 +62,7 @@ apps/mobile/dist
 .env.*.local
 
 # opcional: si usas env por app
-apps/web/.env*
+apps/web/.env.local
 apps/mobile/.env*
 
 ############################################
