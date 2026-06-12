@@ -3,7 +3,6 @@ import { ConfigProvider } from 'antd';
 import '../styles/globals.css';
 import AppShell from "@/src/features/layout/AppShell";
 import {AuthProvider} from "@/src/auth/AuthProvider";
-// import { AuthProvider } from "@/auth/AuthProvider";
 export const metadata: Metadata = { title: 'HortApp', description: 'Panel Hort' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

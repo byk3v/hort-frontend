@@ -14,9 +14,10 @@ const {Header} = Layout;
 export type HeaderBarProps = {
     title?: string;
     userName?: string;
+    onLogout?: () => void | Promise<void>;
 };
 
-export default function HeaderBar({title = 'Panel Hort', userName = 'Gianny'}: HeaderBarProps) {
+export default function HeaderBar({title = 'Panel Hort', userName = 'Benutzer', onLogout}: HeaderBarProps) {
 
     const userMenu = {
         items: [
@@ -34,7 +35,7 @@ export default function HeaderBar({title = 'Panel Hort', userName = 'Gianny'}: H
                     console.log("settings");
                     break;
                 case "logout":
-                    console.log("logout");
+                    void onLogout?.();
                     break;
             }
         },

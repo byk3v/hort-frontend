@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { authHeaders } from "../_lib/authHeaders";
 
 const BASE = process.env.BACKEND_API_URL ?? "http://localhost:4000";
 
 export async function GET(req: Request) {
     const upstream = await fetch(`${BASE}/api/groups`, {
-        headers: { Accept: "application/json" },
-        // cache: "no-store", // descomenta si no quieres cache
+        headers: authHeaders(req),
+        cache: "no-store",
     });
 
     if (!upstream.ok) {

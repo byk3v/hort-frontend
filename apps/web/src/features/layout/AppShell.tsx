@@ -4,12 +4,14 @@ import {Layout, theme} from 'antd';
 import {useState} from 'react';
 import Sidebar from "@/src/features/layout/Sidebar/Sidebar";
 import HeaderBar from "@/src/features/layout/HeaderBar/HeaderBar";
+import {useAuth} from "@/src/auth/AuthProvider";
 
 const {Content} = Layout;
 
 export default function AppShell({children}: { children: React.ReactNode }) {
     const {token: {colorBgContainer}} = theme.useToken();
     const [collapsed, setCollapsed] = useState(false);
+    const {userName, logout} = useAuth();
 
     return (
         <Layout style={{minHeight: '100vh'}}>
@@ -19,7 +21,7 @@ export default function AppShell({children}: { children: React.ReactNode }) {
             />
 
             <Layout>
-                <HeaderBar title="Panel Hort" userName="Gianny"/>
+                <HeaderBar title="Panel Hort" userName={userName} onLogout={logout}/>
 
                 <Content style={{margin: 16}}>
                     <div

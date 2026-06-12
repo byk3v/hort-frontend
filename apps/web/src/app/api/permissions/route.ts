@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authHeaders } from "../_lib/authHeaders";
 
 const BASE = process.env.BACKEND_API_URL ?? "http://localhost:4000";
 
@@ -7,7 +8,7 @@ export async function GET(req: Request) {
     const status = url.searchParams.get("status") ?? "ACTIVE";
 
     const upstream = await fetch(`${BASE}/api/permissions?status=${encodeURIComponent(status)}`, {
-        headers: { Accept: "application/json" },
+        headers: authHeaders(req),
         cache: "no-store",
     });
 
@@ -24,10 +25,9 @@ export async function POST(req: Request) {
 
     const upstream = await fetch(`${BASE}/api/permissions`, {
         method: "POST",
-        headers: {
+        headers: authHeaders(req, {
             "content-type": "application/json",
-            Accept: "application/json",
-        },
+        }),
         body: JSON.stringify(body),
     });
 

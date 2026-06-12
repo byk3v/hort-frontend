@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authHeaders } from "../../_lib/authHeaders";
 
 const BASE = process.env.BACKEND_API_URL ?? "http://localhost:4000";
 
@@ -7,10 +8,9 @@ export async function POST(req: Request) {
 
     const upstream = await fetch(`${BASE}/api/checkout/confirm`, {
         method: "POST",
-        headers: {
+        headers: authHeaders(req, {
             "content-type": "application/json",
-            Accept: "application/json",
-        },
+        }),
         body: JSON.stringify(body),
     });
 

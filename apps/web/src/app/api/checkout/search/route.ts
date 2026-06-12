@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authHeaders } from "../../_lib/authHeaders";
 
 const BASE = process.env.BACKEND_API_URL ?? "http://localhost:4000";
 
@@ -7,7 +8,7 @@ export async function GET(req: Request) {
     const q = url.searchParams.get("q") ?? "";
 
     const upstream = await fetch(`${BASE}/api/checkout/search?q=${encodeURIComponent(q)}`, {
-        headers: { Accept: "application/json" },
+        headers: authHeaders(req),
         cache: "no-store",
     });
 
