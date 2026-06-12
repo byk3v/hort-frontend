@@ -3,17 +3,10 @@
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { setAccessTokenProvider } from "@kubuci-hort/http";
 import type Keycloak from "keycloak-js";
+import type { KeycloakTokenParsed } from "keycloak-js";
 
 type Props = {
     children: ReactNode;
-};
-
-type TokenParsed = {
-    name?: string;
-    given_name?: string;
-    family_name?: string;
-    preferred_username?: string;
-    email?: string;
 };
 
 type AuthContextValue = {
@@ -23,7 +16,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function getUserName(tokenParsed?: TokenParsed) {
+function getUserName(tokenParsed?: KeycloakTokenParsed) {
     if (!tokenParsed) return "Benutzer";
 
     const fullName = [tokenParsed.given_name, tokenParsed.family_name]
