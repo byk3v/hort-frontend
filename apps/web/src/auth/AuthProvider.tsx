@@ -38,7 +38,7 @@ export function AuthProvider({ children }: Props) {
 
     async function logout() {
         await keycloakRef.current?.logout({
-            redirectUri: window.location.origin,
+            redirectUri: `${window.location.origin}/`,
         });
     }
 

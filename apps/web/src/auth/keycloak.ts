@@ -5,3 +5,5 @@ export const keycloak = new Keycloak({
     realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM!,
     clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID!,
 });
+
+export default keycloak;

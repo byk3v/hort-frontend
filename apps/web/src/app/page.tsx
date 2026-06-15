@@ -1,4 +1,5 @@
-export default function Page() {
-    return <>Bienvenido al panel del Hort 👋</>;
-}
+import PublicHome from "@/src/features/public/PublicHome";
 
+export default function Page() {
+    return <PublicHome />;
+}
