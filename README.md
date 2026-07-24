@@ -2,6 +2,11 @@
 
 Frontend monorepo para las aplicaciones web y mobile de HORT.
 
+## Documentacion
+
+La documentacion funcional, arquitectonica y las decisiones tecnicas se
+encuentran en [`docs/`](docs/README.md).
+
 ## Requisitos
 
 - Node.js
