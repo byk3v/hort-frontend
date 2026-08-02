@@ -36,6 +36,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
         throw new Error(`HTTP error ${res.status}`);
     }
 
+    if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
 }
 
@@ -59,6 +60,15 @@ export const api = {
             body: JSON.stringify(body),
         });
 
+        return handleResponse<T>(res);
+    },
+
+    async put<T>(url: string, body?: unknown): Promise<T> {
+        const res = await fetch(url, {
+            method: "PUT",
+            headers: await buildHeaders({ "content-type": "application/json" }),
+            body: body === undefined ? undefined : JSON.stringify(body),
+        });
         return handleResponse<T>(res);
     },
 };

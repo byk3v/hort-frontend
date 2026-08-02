@@ -8,7 +8,7 @@ export async function searchStudentForCheckout(q: string) {
 }
 
 export async function confirmCheckoutWithCollector(
-    studentId: number,
+    studentId: string,
     collector: CheckoutCollectorInfo
 ) {
     await api.post("/api/checkout/confirm", {
@@ -21,7 +21,7 @@ export async function confirmCheckoutWithCollector(
 }
 
 export async function confirmSelfDismissal(
-    studentId: number
+    studentId: string
 ) {
     await api.post("/api/checkout/confirm", {
         studentId,

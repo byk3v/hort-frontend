@@ -1,118 +1,55 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {Button, Input, message, Space, Table, Typography} from "antd";
-import type {ColumnsType} from "antd/es/table";
+import type {ColumnsType, TablePaginationConfig} from "antd/es/table";
 import {ReloadOutlined, SearchOutlined} from "@ant-design/icons";
-import {getCollectors} from "@/src/features/collectors/api";
+import {getCollectorPage} from "@/src/features/collectors/api";
 import {CollectorDTO} from "@kubuci-hort/types";
-
-const { Title } = Typography;
 
 export default function CollectorsClient() {
     const [loading, setLoading] = useState(false);
     const [rows, setRows] = useState<CollectorDTO[]>([]);
-    const [q, setQ] = useState<string>(""); // filtro simple por nombre
+    const [query, setQuery] = useState("");
+    const [submittedQuery, setSubmittedQuery] = useState("");
+    const [page, setPage] = useState(0);
+    const [size, setSize] = useState(20);
+    const [total, setTotal] = useState(0);
 
-    const load = async () => {
+    const load = useCallback(async () => {
         try {
             setLoading(true);
-            const data = await getCollectors();
-            // filtro en cliente (si quieres filtro en BE, cambia a params)
-            const filtered = q
-                ? data.filter((c) =>
-                    c.firstName.toLowerCase().includes(q.trim().toLowerCase())
-                )
-                : data;
-            setRows(filtered);
-        } catch (e) {
-            console.error(e);
-            message.error("Fehler beim Laden der Collectors liste");
-        } finally {
-            setLoading(false);
-        }
+            const result = await getCollectorPage(page, size, submittedQuery || undefined);
+            setRows(result.items);
+            setTotal(result.totalElements);
+        } catch (error) {
+            console.error(error);
+            message.error("Fehler beim Laden der Abholer");
+        } finally { setLoading(false); }
+    }, [page, size, submittedQuery]);
+
+    useEffect(() => { void load(); }, [load]);
+
+    const columns: ColumnsType<CollectorDTO> = useMemo(() => [
+        {title: "Name", key: "name", render: (_, row) => `${row.firstName} ${row.lastName}`},
+        {title: "Adresse", dataIndex: "address", key: "address"},
+        {title: "Telefon", dataIndex: "phone", key: "phone"},
+    ], []);
+
+    const changePage = (pagination: TablePaginationConfig) => {
+        setPage((pagination.current ?? 1) - 1);
+        setSize(pagination.pageSize ?? 20);
     };
 
-    useEffect(() => {
-        load();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const onSearch = () => load();
-
-    const columns: ColumnsType<CollectorDTO> = useMemo(
-        () => [
-            {
-                title: "ID",
-                dataIndex: "id",
-                key: "id",
-                width: 120,
-                sorter: (a, b) => a.id.localeCompare(b.id),
-            },
-            {
-                title: 'Name',
-                key: 'name',
-                render: (_, r) => (
-                    <span>
-            {r.firstName} {r.lastName}
-          </span>
-                ),
-                sorter: (a, b) =>
-                    (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName),
-            },
-            {
-                title: 'Adresse',
-                dataIndex: 'address',
-                key: 'address',
-                ellipsis: true,
-            },
-            {
-                title: 'Phone',
-                dataIndex: 'phone',
-                key: 'phone',
-                ellipsis: true,
-            },
-        ],
-        []
-    );
-
-    return (
-        <Space orientation="vertical" size="large" style={{ width: "100%" }}>
-            <Title level={3} style={{ margin: 0 }}>
-                Abholer
-            </Title>
-
-            {/* Barra de filtros */}
-            <Space wrap>
-                <Input
-                    allowClear
-                    placeholder="Abholer Name"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    onPressEnter={onSearch}
-                    style={{ width: 260 }}
-                    prefix={<SearchOutlined />}
-                />
-                <Button type="primary" icon={<SearchOutlined />} onClick={onSearch}>
-                    Suchen
-                </Button>
-                <Button
-                    icon={<ReloadOutlined />}
-                    onClick={() => {
-                        setQ("");
-                        setTimeout(load, 0);
-                    }}
-                />
-            </Space>
-
-            {/* Tabla */}
-            <Table<CollectorDTO>
-                rowKey={(r) => r.id}
-                loading={loading}
-                columns={columns}
-                dataSource={rows}
-                pagination={{ pageSize: 10, showSizeChanger: true }}
-            />
+    return <Space orientation="vertical" size="large" style={{width: "100%"}}>
+        <Typography.Title level={3} style={{margin: 0}}>Abholer</Typography.Title>
+        <Space wrap>
+            <Input allowClear placeholder="Name" value={query} onChange={event => setQuery(event.target.value)}
+                   onPressEnter={() => { setPage(0); setSubmittedQuery(query.trim()); }} prefix={<SearchOutlined/>}/>
+            <Button type="primary" icon={<SearchOutlined/>} onClick={() => { setPage(0); setSubmittedQuery(query.trim()); }}>Suchen</Button>
+            <Button icon={<ReloadOutlined/>} onClick={() => { setQuery(""); setSubmittedQuery(""); setPage(0); }}/>
         </Space>
-    );
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} onChange={changePage}
+               pagination={{current: page + 1, pageSize: size, total, showSizeChanger: true}}/>
+    </Space>;
 }

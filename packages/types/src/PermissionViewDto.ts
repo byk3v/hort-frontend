@@ -1,16 +1,17 @@
+export type StudentAuthorizationStatus = "ACTIVE" | "SCHEDULED" | "EXPIRED" | "REVOKED";
+export type StudentAuthorizationKind = "PICKUP_RIGHT" | "SELF_DISMISSAL";
+
 export type PermissionViewDto = {
-    permissionId: number;
-    permissionKind: "COLLECTOR" | "SELF_DISMISSAL";
-    studentId: number;
-    studentFirstName: string;
-    studentLastName: string;
-    studentGroupName: string | null;
-    collectorId: number | null;
-    collectorFirstName: string | null;
-    collectorLastName: string | null;
-    collectorPhone: string | null;
-    validFrom: string | null;        // ISO string
-    validUntil: string | null;       // ISO string or null
-    allowedFromTime: string | null;  // "15:30" etc
-    status: string;                  // "ACTIVE", ...
+    id: string;
+    kind: StudentAuthorizationKind;
+    student: { id: string; firstName: string; lastName: string; groupName: string | null };
+    collector: { id: string; firstName: string; lastName: string; phone: string | null } | null;
+    duration: "DAILY" | "PERMANENT";
+    validFrom: string;
+    validUntil: string | null;
+    allowedFromTime: string | null;
+    weeklyRules: { dayOfWeek: Weekday; allowedFromTime: string }[];
+    status: StudentAuthorizationStatus;
 };
+
+export type Weekday = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY";
