@@ -47,7 +47,7 @@ export default function CollectorsClient() {
                 dataIndex: "id",
                 key: "id",
                 width: 120,
-                sorter: (a, b) => a.id - b.id,
+                sorter: (a, b) => a.id.localeCompare(b.id),
             },
             {
                 title: 'Name',

@@ -13,9 +13,9 @@ Si `BACKEND_API_URL` no está definida usan `http://localhost:4000`.
 | --- | --- |
 | Checkout | `GET /api/checkout/search`, `POST /api/checkout/confirm` |
 | Collectors | `GET /api/collectors` |
-| Groups | `GET /api/groups` |
+| Groups | `GET /api/v1/groups` |
 | Permissions | `GET`, `POST /api/permissions` |
-| Students | `GET`, `POST /api/students` |
+| Students | `GET`, `POST /api/v1/students` |
 
 Las consultas usan `no-store`. El tratamiento de errores no es todavía uniforme:
 algunos handlers producen `Upstream error` y otros preservan cuerpo y estado.

@@ -4,17 +4,13 @@ import { Button } from "antd";
 import { LoginOutlined } from "@ant-design/icons";
 import type Keycloak from "keycloak-js";
 
-let keycloakInitPromise: Promise<boolean> | undefined;
-
 async function getInitializedKeycloak(): Promise<Keycloak> {
-    const { default: keycloak } = await import("@/src/auth/keycloak");
+    const { initializeKeycloak, keycloak } = await import("@/src/auth/keycloak");
 
-    keycloakInitPromise ??= keycloak.init({
+    await initializeKeycloak({
         checkLoginIframe: false,
         pkceMethod: "S256",
     });
-
-    await keycloakInitPromise;
 
     return keycloak;
 }

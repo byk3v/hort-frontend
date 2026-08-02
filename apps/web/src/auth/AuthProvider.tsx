@@ -11,6 +11,7 @@ type Props = {
 
 type AuthContextValue = {
     userName: string;
+    roles: string[];
     logout: () => Promise<void>;
 };
 
@@ -33,6 +34,7 @@ function getUserName(tokenParsed?: KeycloakTokenParsed) {
 export function AuthProvider({ children }: Props) {
     const [ready, setReady] = useState(false);
     const [userName, setUserName] = useState("Benutzer");
+    const [roles, setRoles] = useState<string[]>([]);
     const initialized = useRef(false);
     const keycloakRef = useRef<Keycloak | null>(null);
 
@@ -46,19 +48,19 @@ export function AuthProvider({ children }: Props) {
         if (initialized.current) return;
         initialized.current = true;
 
-        import("./keycloak").then(({ keycloak }) => {
+        import("./keycloak").then(({ initializeKeycloak, keycloak }) => {
             keycloakRef.current = keycloak;
 
-            keycloak
-                .init({
-                    onLoad: "login-required",
-                    checkLoginIframe: false,
-                    pkceMethod: "S256",
-                })
+            initializeKeycloak({
+                onLoad: "login-required",
+                checkLoginIframe: false,
+                pkceMethod: "S256",
+            })
                 .then((authenticated) => {
                     console.log("KEYCLOAK AUTHENTICATED:", authenticated);
                     console.log("TOKEN PARSED:", keycloak.tokenParsed);
                     setUserName(getUserName(keycloak.tokenParsed));
+                    setRoles(keycloak.realmAccess?.roles ?? []);
 
                     setAccessTokenProvider(async () => {
                         if (keycloak.isTokenExpired(30)) {
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: Props) {
     }
 
     return (
-        <AuthContext.Provider value={{ userName, logout }}>
+        <AuthContext.Provider value={{ userName, roles, logout }}>
             {children}
         </AuthContext.Provider>
     );

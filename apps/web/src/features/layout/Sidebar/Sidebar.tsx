@@ -54,7 +54,7 @@ export default function Sidebar({collapsed, onToggle}: SidebarProps) {
                 mode="inline"
                 selectedKeys={[selectedKey]}
                 items={[
-                    {key: 'home', icon: <HomeOutlined/>, label: <Link href="/">Start</Link>},
+                    {key: 'home', icon: <HomeOutlined/>, label: <Link href="/dashboard">Start</Link>},
                     {key: 'groups', icon: <TeamOutlined/>, label: <Link href="/groups">Gruppen</Link>},
                     {key: 'students', icon: <TeamOutlined/>, label: <Link href="/students">Schülern</Link>},
                     {key: 'collectors', icon: <UserOutlined/>, label: <Link href="/collectors">Abholer</Link>},

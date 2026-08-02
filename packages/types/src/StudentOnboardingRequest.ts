@@ -1,22 +1,36 @@
-export interface CollectorForOnboarding {
-    firstName: string;
-    lastName: string;
-    address: string;
-    phone?: string;
+type CollectorPermission = {
+    permissionType: "PERMANENT" | "DAILY";
     validFrom: string | null;
     validUntil: string | null;
-    type: "COLLECTOR";
-    permissionType: "PERMANENT";
     mainCollector: boolean;
-}
+};
+
+export type CollectorForOnboarding = CollectorPermission & (
+    | {
+        source: "EXISTING";
+        existingCollectorId: string;
+        newCollector?: never;
+    }
+    | {
+        source: "NEW";
+        existingCollectorId?: never;
+        newCollector: {
+            firstName: string;
+            lastName: string;
+            address?: string;
+            phone?: string;
+        };
+    }
+);
 
 export interface StudentOnboardingRequest {
     student: {
         firstName: string;
         lastName: string;
-        address: string;
+        address?: string;
         phone?: string;
     };
-    groupId: number;
+    groupId: string;
+    canLeaveAlone: boolean;
     collectors: CollectorForOnboarding[];
 }
