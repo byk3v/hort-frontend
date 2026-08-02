@@ -1,251 +1,89 @@
 "use client";
 
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Table, Input, Space, Tag, Typography, message, Button} from "antd";
-import type {ColumnsType} from "antd/es/table";
-import {CheckoutCollectorInfo, CheckoutStudentInfo} from "@kubuci-hort/types";
-import {
-    confirmCheckoutWithCollector,
-    confirmSelfDismissal,
-    searchStudentForCheckout
-} from "@/src/features/checkout/api";
+import {useCallback, useEffect, useMemo, useState} from "react";
+import {Button, Input, message, Space, Table, Tag, Typography} from "antd";
+import type {ColumnsType, TablePaginationConfig} from "antd/es/table";
 import {LogoutOutlined, UserOutlined} from "@ant-design/icons";
+import dayjs from "dayjs";
+import type {CheckoutCollectorInfo, CheckoutStudentInfo} from "@kubuci-hort/types";
+import {confirmCheckoutWithCollector, confirmSelfDismissal, getPresentStudents} from "../api";
+import {HttpError} from "@kubuci-hort/http";
 
-const {Title, Text} = Typography;
+function checkoutError(error: unknown) {
+    if (error instanceof HttpError && error.code === "attendance_already_checked_out") return "Der Schüler wurde bereits abgemeldet";
+    if (error instanceof HttpError && error.code === "checkout_authorization_not_active") return "Die ausgewählte Berechtigung ist nicht mehr gültig";
+    if (error instanceof HttpError && error.code === "attendance_not_checked_in") return "Der Schüler ist heute nicht angemeldet";
+    return "Checkout konnte nicht gespeichert werden";
+}
 
 export default function CheckoutClient() {
     const [query, setQuery] = useState("");
+    const [submittedQuery, setSubmittedQuery] = useState("");
     const [rows, setRows] = useState<CheckoutStudentInfo[]>([]);
     const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(0);
+    const [size, setSize] = useState(20);
+    const [total, setTotal] = useState(0);
 
-    // guardamos último timer para debounce
-    const debounceRef = useRef<number | null>(null);
-
-    const fetchData = useCallback(async (q: string) => {
-        if (q.length < 2) {
-            setRows([]);
-            return;
-        }
+    const load = useCallback(async () => {
         try {
             setLoading(true);
-            const data = await searchStudentForCheckout(q);
-            setRows(data.students ?? []);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+            const result = await getPresentStudents(submittedQuery, page, size);
+            setRows(result.items); setTotal(result.totalElements);
+        } catch (error) { console.error(error); message.error("Anwesende Schüler konnten nicht geladen werden"); }
+        finally { setLoading(false); }
+    }, [submittedQuery, page, size]);
+    useEffect(() => { void load(); }, [load]);
 
-    // disparar búsqueda con debounce cada vez que query cambie
-    useEffect(() => {
-        if (debounceRef.current) {
-            window.clearTimeout(debounceRef.current);
-        }
-        debounceRef.current = window.setTimeout(() => {
-            fetchData(query.trim());
-        }, 300); // 300ms debounce
-        return () => {
-            if (debounceRef.current) {
-                window.clearTimeout(debounceRef.current);
-            }
-        };
-    }, [query, fetchData]);
-
-    // Helpers para acciones
-    const handleCollectorCheckout = async (
-        student: CheckoutStudentInfo,
-        collector: CheckoutCollectorInfo
-    ) => {
-        try {
-            await confirmCheckoutWithCollector(student.studentId, collector);
-            message.success(
-                `${collector.firstName} ${collector.lastName} hat ${student.firstName} ${student.lastName} abgeholt`
-            );
-            setRows(prev =>
-                prev.map(s =>
-                    s.studentId === student.studentId
-                        ? {...s, checkedOutToday: true}
-                        : s
-                )
-            );
-
-            // Refresca en segundo plano
-            setTimeout(() => fetchData(query.trim()), 1000);
-        } catch (e) {
-            console.error(e);
-            message.error("Fehler beim Checkout speichern");
-        }
+    const remove = (attendanceId: string) => {
+        setRows(current => current.filter(row => row.attendanceId !== attendanceId));
+        setTotal(current => Math.max(0, current - 1));
     };
-
-    const handleSelfCheckout = async (student: CheckoutStudentInfo) => {
+    const pickup = async (row: CheckoutStudentInfo, collector: CheckoutCollectorInfo) => {
         try {
-            await confirmSelfDismissal(student.studentId);
-            message.success(
-                `${student.firstName} ${student.lastName} hat sich selbst abgemeldet`
-            );
-            setRows(prev =>
-                prev.map(s =>
-                    s.studentId === student.studentId
-                        ? {...s, checkedOutToday: true}
-                        : s
-                )
-            );
-
-            setTimeout(() => fetchData(query.trim()), 1000);
-        } catch (e) {
-            console.error(e);
-            message.error("Fehler beim Checkout speichern");
-        }
+            await confirmCheckoutWithCollector(row.attendanceId, collector); remove(row.attendanceId);
+            message.success(`${row.student.firstName} ${row.student.lastName} wurde abgemeldet`);
+        } catch (error) { console.error(error); message.error(checkoutError(error)); }
+    };
+    const selfDismiss = async (row: CheckoutStudentInfo) => {
+        if (!row.selfDismissalId) return;
+        try {
+            await confirmSelfDismissal(row.attendanceId, row.selfDismissalId); remove(row.attendanceId);
+            message.success(`${row.student.firstName} ${row.student.lastName} wurde abgemeldet`);
+        } catch (error) { console.error(error); message.error(checkoutError(error)); }
     };
 
     const columns: ColumnsType<CheckoutStudentInfo> = useMemo(() => [
-        {
-            title: "Name",
-            key: "name",
-            render: (_, r) => (
-                <Space size={8} align="center">
-                <span>
-          {r.firstName} {r.lastName}
-                    </span>
-                    {r.checkedOutToday && <Tag color="red">Schon abgemeldet</Tag>}
+        {title: "Schüler", render: (_, row) => <Space orientation="vertical" size={0}>
+            <span>{row.student.firstName} {row.student.lastName}</span>
+            <Typography.Text type="secondary">{row.student.groupName ?? "—"}</Typography.Text>
+        </Space>},
+        {title: "Anmeldung", render: (_, row) => dayjs(row.checkedInAt).format("HH:mm")},
+        {title: "Allein gehen", render: (_, row) => row.canLeaveAloneNow
+            ? <Button size="small" icon={<UserOutlined/>} onClick={() => void selfDismiss(row)}>
+                Ab {row.allowedToLeaveFromTime?.slice(0, 5) ?? "jetzt"}
+            </Button> : <Tag>Nein</Tag>},
+        {title: "Berechtigte Abholer", render: (_, row) => row.allowedCollectors.length === 0
+            ? <Typography.Text type="secondary">Keine aktuell gültige Berechtigung</Typography.Text>
+            : <Space orientation="vertical">{row.allowedCollectors.map(collector =>
+                <Button key={collector.pickupRightId} type="primary" size="small" icon={<LogoutOutlined/>}
+                        onClick={() => void pickup(row, collector)}>
+                    {collector.firstName} {collector.lastName}{collector.mainCollector ? " (Haupt)" : ""}
+                </Button>)}</Space>},
+    ], []);
 
-                </Space>
-            ),
-            sorter: (a, b) =>
-                (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName),
-        },
-        {
-            title: "Gruppe",
-            dataIndex: "groupName",
-            key: "groupName",
-            width: 120,
-            render: (v: string | null) => v ?? <Text type="secondary">—</Text>,
-        },
-        {
-            title: "Allein gehen?",
-            key: "canLeaveAloneToday",
-            width: 180,
-            render: (_, r) => {
-                if (!r.canLeaveAloneToday) {
-                    return <Tag>Nein</Tag>;
-                }
-                const fromHuman = r.allowedToLeaveFromTime
-                    ? r.allowedToLeaveFromTime.slice(0, 5)
-                    : "Jetzt";
-                return (
-                    <Space orientation="vertical" size={4}>
-                        <Tag color="green">Ja ab {fromHuman}</Tag>
+    const onPage = (pagination: TablePaginationConfig) => {
+        setPage((pagination.current ?? 1) - 1); setSize(pagination.pageSize ?? 20);
+    };
+    const search = () => { setPage(0); setSubmittedQuery(query.trim()); };
 
-                        {r.checkedOutToday ? (
-                            <Tag color="red">Schon abgemeldet</Tag>
-                        ) : (
-                            <Button
-                                size="small"
-                                icon={<UserOutlined/>}
-                                onClick={() => handleSelfCheckout(r)}
-                            >
-                                Selbst gehen lassen
-                            </Button>
-                        )}
-                    </Space>
-                );
-            },
-        },
-        {
-            title: "Berechtigte Abholer (heute)",
-            key: "collectors",
-            render: (_, r) => {
-                if (!r.allowedCollectors?.length) {
-                    return <Text type="secondary">—</Text>;
-                }
-                return (
-                    <Space orientation="vertical" size={6} style={{width: "100%"}}>
-                        {r.allowedCollectors.map((c, i) => (
-                            <div
-                                key={i}
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "minmax(160px, 1fr) 140px auto",
-                                    alignItems: "center",
-                                    columnGap: 8,
-                                    rowGap: 4,
-                                }}
-                            >
-                                <div style={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6}}>
-                                    <Text strong>
-                                        {c.firstName} {c.lastName}
-                                    </Text>
-
-                                    {c.mainCollector && <Tag color="blue">Haupt</Tag>}
-
-                                    {c.allowedFromTime && (
-                                        <Tag color="green">ab {c.allowedFromTime}</Tag>
-                                    )}
-                                </div>
-                                <div style={{
-                                    color: "rgba(0,0,0,.45)", whiteSpace: "nowrap", overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    maxWidth: 140,
-                                }}>
-                                    {c.phone && (
-                                        <Text type="secondary" style={{marginLeft: 4}}>
-                                            {c.phone}
-                                        </Text>
-                                    )}
-                                </div>
-                                <div>
-                                    {r.checkedOutToday ? (
-                                        <Tag color="red">Schon abgemeldet</Tag>
-                                    ) : (
-                                        <Button
-                                            size="small"
-                                            shape="round"
-                                            type="primary"
-                                            icon={<LogoutOutlined/>}
-                                            onClick={() => handleCollectorCheckout(r, c)}
-                                        >
-                                            Abmelden
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </Space>
-                );
-            },
-        },
-    ], [handleCollectorCheckout, handleSelfCheckout]);
-
-    return (
-        <Space orientation="vertical" size="large" style={{width: "100%"}}>
-            <Title level={3} style={{margin: 0}}>
-                Abmeldung
-            </Title>
-
-            {/* barra de búsqueda */}
-            <Space wrap style={{width: "100%"}}>
-                <Input
-                    allowClear
-                    autoFocus
-                    placeholder="Suche nach Name oder Gruppe (z.B. 'so', 'mül', '3t')"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    style={{width: 320}}
-                />
-                <Text type="secondary">
-                    Tippe mind. 2 Zeichen. Suche läuft automatisch.
-                </Text>
-            </Space>
-
-            {/* tabla de resultados */}
-            <Table<CheckoutStudentInfo>
-                rowKey={(r) => r.studentId}
-                loading={loading}
-                columns={columns}
-                dataSource={rows}
-                pagination={{pageSize: 10, showSizeChanger: true}}
-            />
-        </Space>
-    );
+    return <Space orientation="vertical" size="large" style={{width: "100%"}}>
+        <Typography.Title level={3} style={{margin: 0}}>Abmeldung</Typography.Title>
+        <Typography.Text type="secondary">Es werden ausschließlich heute angemeldete Schüler angezeigt.</Typography.Text>
+        <Space><Input.Search allowClear placeholder="Name oder Gruppe" value={query}
+                             onChange={event => setQuery(event.target.value)} onSearch={search}/>
+            <Button onClick={() => void load()}>Aktualisieren</Button></Space>
+        <Table rowKey="attendanceId" loading={loading} columns={columns} dataSource={rows} onChange={onPage}
+               pagination={{current: page + 1, pageSize: size, total, showSizeChanger: true}}/>
+    </Space>;
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
     Button,
-    Checkbox,
     Col,
     Divider,
     Form,
@@ -49,7 +48,6 @@ type StudentFormValue = {
         phone?: string;
     };
     groupId: string;
-    canLeaveAlone: boolean;
     collectors: CollectorFormValue[];
 };
 
@@ -123,7 +121,6 @@ export default function AddStudentModal({ open, groups, onClose, onCreated }: Pr
                     phone: values.student.phone || undefined,
                 },
                 groupId: values.groupId,
-                canLeaveAlone: values.canLeaveAlone ?? false,
                 collectors: collectorRequests,
             };
 
@@ -154,7 +151,7 @@ export default function AddStudentModal({ open, groups, onClose, onCreated }: Pr
             <Form<StudentFormValue>
                 form={form}
                 layout="vertical"
-                initialValues={{ canLeaveAlone: false, collectors: [initialCollector] }}
+                initialValues={{ collectors: [initialCollector] }}
             >
                 <Divider orientation="horizontal" titlePlacement="left">Schüler</Divider>
                 <Row gutter={16}>
@@ -172,7 +169,7 @@ export default function AddStudentModal({ open, groups, onClose, onCreated }: Pr
                     </Col>
                 </Row>
                 <Row gutter={16}>
-                    <Col span={12}>
+                    <Col span={24}>
                         <Form.Item name="groupId" label="Gruppe"
                             rules={[{ required: true, message: "Bitte eine Gruppe auswählen" }]}>
                             <Select
@@ -180,11 +177,6 @@ export default function AddStudentModal({ open, groups, onClose, onCreated }: Pr
                                 optionFilterProp="label"
                                 options={groups.map((group) => ({ value: group.id, label: group.name }))}
                             />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item name="canLeaveAlone" valuePropName="checked" label=" ">
-                            <Checkbox>Darf allein gehen</Checkbox>
                         </Form.Item>
                     </Col>
                 </Row>

@@ -31,6 +31,5 @@ export interface StudentOnboardingRequest {
         phone?: string;
     };
     groupId: string;
-    canLeaveAlone: boolean;
     collectors: CollectorForOnboarding[];
 }
