@@ -1,5 +1,12 @@
 type QueryParams = Record<string, string | number | boolean | undefined>;
 
+export class HttpError extends Error {
+    constructor(public readonly status: number, public readonly code?: string, public readonly detail?: string) {
+        super(detail ?? `HTTP error ${status}`);
+        this.name = "HttpError";
+    }
+}
+
 let accessTokenProvider: (() => Promise<string | undefined>) | undefined;
 
 export function setAccessTokenProvider(provider: () => Promise<string | undefined>) {
@@ -33,7 +40,11 @@ async function buildHeaders(extra?: HeadersInit): Promise<HeadersInit> {
 
 async function handleResponse<T>(res: Response): Promise<T> {
     if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}`);
+        const contentType = res.headers.get("content-type") ?? "";
+        const problem = contentType.includes("json")
+            ? await res.json().catch(() => undefined) as {code?: string; detail?: string} | undefined
+            : undefined;
+        throw new HttpError(res.status, problem?.code, problem?.detail);
     }
 
     if (res.status === 204) return undefined as T;
