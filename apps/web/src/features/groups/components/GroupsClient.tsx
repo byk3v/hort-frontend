@@ -5,7 +5,7 @@ import { Button, Input, message, Space, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { getGroups } from "@/src/features/groups/api";
-import {GroupDTO} from "@kubuci-hort/types";
+import type { GroupDTO } from "@kubuci-hort/types";
 
 const { Title, Text } = Typography;
 
@@ -47,7 +47,7 @@ export default function GroupsClient() {
                 dataIndex: "id",
                 key: "id",
                 width: 120,
-                sorter: (a, b) => a.id - b.id,
+                sorter: (a, b) => a.id.localeCompare(b.id),
             },
             {
                 title: "Name",

@@ -1,4 +1,4 @@
 export type GroupDTO = {
-    id: number;
+    id: string;
     name: string;
 };

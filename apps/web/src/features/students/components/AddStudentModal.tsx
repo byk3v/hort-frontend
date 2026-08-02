@@ -1,57 +1,140 @@
 "use client";
 
-import {useState} from "react";
-import {Modal, Form, Input, Button, Checkbox, Divider, message, Row, Col} from "antd";
-import {MinusCircleOutlined, PlusOutlined} from "@ant-design/icons";
-import dayjs from "dayjs";
-import {createStudentOnboarding} from "@/src/features/students/api";
+import { useEffect, useState } from "react";
+import {
+    Button,
+    Checkbox,
+    Col,
+    Divider,
+    Form,
+    Input,
+    message,
+    Modal,
+    Radio,
+    Row,
+    Select,
+} from "antd";
+import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import type {
+    CollectorDTO,
+    CollectorForOnboarding,
+    GroupDTO,
+    StudentOnboardingRequest,
+} from "@kubuci-hort/types";
+import { getCollectors } from "@/src/features/collectors/api";
+import { createStudentOnboarding } from "@/src/features/students/api";
 
 type Props = {
     open: boolean;
+    groups: GroupDTO[];
     onClose: () => void;
     onCreated?: () => void;
 };
 
-export default function AddStudentModal({open, onClose, onCreated}: Props) {
-    const [form] = Form.useForm();
+type CollectorFormValue = {
+    source: "NEW" | "EXISTING";
+    existingCollectorId?: string;
+    firstName?: string;
+    lastName?: string;
+    address?: string;
+    phone?: string;
+    mainCollector: boolean;
+};
+
+type StudentFormValue = {
+    student: {
+        firstName: string;
+        lastName: string;
+        address?: string;
+        phone?: string;
+    };
+    groupId: string;
+    canLeaveAlone: boolean;
+    collectors: CollectorFormValue[];
+};
+
+const initialCollector: CollectorFormValue = {
+    source: "NEW",
+    mainCollector: true,
+};
+
+export default function AddStudentModal({ open, groups, onClose, onCreated }: Props) {
+    const [form] = Form.useForm<StudentFormValue>();
     const [loading, setLoading] = useState(false);
+    const [collectors, setCollectors] = useState<CollectorDTO[]>([]);
+
+    useEffect(() => {
+        if (!open) return;
+        void getCollectors()
+            .then(setCollectors)
+            .catch((error) => {
+                console.error(error);
+                message.error("Vorhandene Abholer konnten nicht geladen werden");
+            });
+    }, [open]);
+
+    const close = () => {
+        form.resetFields();
+        onClose();
+    };
+
+    const selectMainCollector = (index: number) => {
+        const values = form.getFieldValue("collectors") ?? [];
+        form.setFieldValue("collectors", values.map((collector, current) => ({
+            ...collector,
+            mainCollector: current === index,
+        })));
+        void form.validateFields([["collectors"]]);
+    };
 
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields();
+            const collectorRequests: CollectorForOnboarding[] = values.collectors.map((collector) => {
+                const permission = {
+                    permissionType: "PERMANENT" as const,
+                    validFrom: null,
+                    validUntil: null,
+                    mainCollector: collector.mainCollector,
+                };
+                if (collector.source === "EXISTING") {
+                    return {
+                        ...permission,
+                        source: "EXISTING",
+                        existingCollectorId: collector.existingCollectorId!,
+                    };
+                }
+                return {
+                    ...permission,
+                    source: "NEW",
+                    newCollector: {
+                        firstName: collector.firstName!,
+                        lastName: collector.lastName!,
+                        address: collector.address || undefined,
+                        phone: collector.phone || undefined,
+                    },
+                };
+            });
 
-            const collectors = values.collectors.map((c: any) => ({
-                firstName: c.firstName,
-                lastName: c.lastName,
-                address: c.address,
-                phone: c.phone,
-                validFrom: "",
-                validUntil: "",
-                type: "COLLECTOR",
-                permissionType: "PERMANENT",
-                mainCollector: c.mainCollector ?? false,
-            }));
-
-            const payload = {
+            const payload: StudentOnboardingRequest = {
                 student: {
-                    firstName: values.student.firstName,
-                    lastName: values.student.lastName,
-                    address: values.student.address,
+                    ...values.student,
+                    address: values.student.address || undefined,
                     phone: values.student.phone || undefined,
                 },
-                groupId: 1, // hardcoded until definition
-                collectors,
+                groupId: values.groupId,
+                canLeaveAlone: values.canLeaveAlone ?? false,
+                collectors: collectorRequests,
             };
 
             setLoading(true);
             await createStudentOnboarding(payload);
-            message.success("Student successfully added!");
-            form.resetFields();
-            onClose();
+            message.success("Schüler wurde erfolgreich hinzugefügt");
+            close();
             onCreated?.();
-        } catch (err) {
-            console.error(err);
-            message.error("Error while saving student");
+        } catch (error) {
+            console.error(error);
+            message.error("Fehler beim Speichern des Schülers");
         } finally {
             setLoading(false);
         }
@@ -61,192 +144,165 @@ export default function AddStudentModal({open, onClose, onCreated}: Props) {
         <Modal
             title="Schüler Onboarding"
             open={open}
-            onCancel={() => {
-                form.resetFields();
-                onClose();
-            }}
+            onCancel={close}
             onOk={handleSubmit}
             okText="Speichern"
             confirmLoading={loading}
-            width={750}
-            destroyOnHidden={true}
+            width={820}
+            destroyOnHidden
         >
-            <Form
+            <Form<StudentFormValue>
                 form={form}
                 layout="vertical"
-                initialValues={{
-                    collectors: [
-                        {
-                            firstName: "",
-                            lastName: "",
-                            address: "",
-                            phone: "",
-                            validRange: [dayjs(), dayjs().add(1, "month")],
-                            mainCollector: true,
-                        },
-                    ],
-                }}
+                initialValues={{ canLeaveAlone: false, collectors: [initialCollector] }}
             >
-                {/* ---------------- STUDENT ---------------- */}
                 <Divider orientation="horizontal" titlePlacement="left">Schüler</Divider>
                 <Row gutter={16}>
                     <Col span={12}>
-                        <Form.Item
-                            name={["student", "firstName"]}
-                            label="Vorname"
-                            rules={[{required: true, message: "Required"}]}
-                        >
-                            <Input/>
+                        <Form.Item name={["student", "firstName"]} label="Vorname"
+                            rules={[{ required: true, message: "Pflichtfeld" }]}>
+                            <Input maxLength={120} />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
-                        <Form.Item
-                            name={["student", "lastName"]}
-                            label="Nachname"
-                            rules={[{required: true, message: "Required"}]}
-                        >
-                            <Input/>
+                        <Form.Item name={["student", "lastName"]} label="Nachname"
+                            rules={[{ required: true, message: "Pflichtfeld" }]}>
+                            <Input maxLength={120} />
+                        </Form.Item>
+                    </Col>
+                </Row>
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="groupId" label="Gruppe"
+                            rules={[{ required: true, message: "Bitte eine Gruppe auswählen" }]}>
+                            <Select
+                                showSearch
+                                optionFilterProp="label"
+                                options={groups.map((group) => ({ value: group.id, label: group.name }))}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="canLeaveAlone" valuePropName="checked" label=" ">
+                            <Checkbox>Darf allein gehen</Checkbox>
                         </Form.Item>
                     </Col>
                 </Row>
                 <Row gutter={16}>
                     <Col span={16}>
-                        <Form.Item
-                            name={["student", "address"]}
-                            label="Address"
-                            rules={[{required: true, message: "Required"}]}
-                        >
-                            <Input/>
+                        <Form.Item name={["student", "address"]} label="Adresse">
+                            <Input maxLength={250} />
                         </Form.Item>
                     </Col>
                     <Col span={8}>
-                        <Form.Item name={["student", "phone"]} label="Phone (optional)">
-                            <Input/>
+                        <Form.Item name={["student", "phone"]} label="Telefon">
+                            <Input maxLength={40} />
                         </Form.Item>
                     </Col>
                 </Row>
 
-                {/* ---------------- COLLECTORS ---------------- */}
-                <Divider orientation="horizontal" titlePlacement="left">Abholberechtigten</Divider>
-
+                <Divider orientation="horizontal" titlePlacement="left">Abholberechtigte</Divider>
                 <Form.List
                     name="collectors"
-                    rules={[
-                        {
-                            validator: async (_, collectors) => {
-                                if (!collectors || collectors.length < 1) {
-                                    return Promise.reject(
-                                        new Error("At least one collector is required")
-                                    );
-                                }
-                            },
+                    rules={[{
+                        validator: async (_, values: CollectorFormValue[] | undefined) => {
+                            if (!values?.length) throw new Error("Mindestens ein Abholer ist erforderlich");
+                            if (values.filter((collector) => collector.mainCollector).length !== 1) {
+                                throw new Error("Genau ein Hauptabholer ist erforderlich");
+                            }
                         },
-                    ]}
+                    }]}
                 >
-                    {(fields, {add, remove}) => (
+                    {(fields, { add, remove }, { errors }) => (
                         <>
-                            {fields.map(({key, name, ...restField}) => (
-                                <div
-                                    key={key}
-                                    style={{
-                                        borderBottom: "1px solid #f0f0f0",
-                                        marginBottom: 16,
-                                        paddingBottom: 8,
-                                    }}
-                                >
-                                    {/* Fila 1: firstName + lastName + remove button */}
-                                    <Row gutter={16} align="top">
-                                        <Col span={11}>
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, "firstName"]}
-                                                label="Vorname"
-                                                rules={[{required: true, message: "Required"}]}
-                                            >
-                                                <Input/>
-                                            </Form.Item>
-                                        </Col>
-
-                                        <Col span={11}>
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, "lastName"]}
-                                                label="Nachname"
-                                                rules={[{required: true, message: "Required"}]}
-                                            >
-                                                <Input/>
-                                            </Form.Item>
-                                        </Col>
-
-                                        <Col span={2} style={{display: "flex", alignItems: "center"}}>
-                                            {fields.length > 1 && (
-                                                <MinusCircleOutlined
-                                                    onClick={() => remove(name)}
-                                                    style={{color: "#ff4d4f", fontSize: 16, cursor: "pointer"}}
-                                                />
-                                            )}
-                                        </Col>
-                                    </Row>
-
-                                    {/* Fila 2: phone + address + mainCollector */}
+                            {fields.map(({ key, name, ...restField }) => (
+                                <div key={key} style={{ borderBottom: "1px solid #f0f0f0", marginBottom: 16 }}>
                                     <Row gutter={16} align="middle">
-                                        <Col span={6}>
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, "phone"]}
-                                                label="Phone"
-                                                rules={[{required: true, message: "Required"}]}
-                                            >
-                                                <Input/>
+                                        <Col span={7}>
+                                            <Form.Item {...restField} name={[name, "source"]} label="Abholer"
+                                                rules={[{ required: true }]}>
+                                                <Select options={[
+                                                    { value: "NEW", label: "Neuen Abholer anlegen" },
+                                                    { value: "EXISTING", label: "Vorhandenen Abholer wählen" },
+                                                ]} />
                                             </Form.Item>
                                         </Col>
-
-                                        <Col span={12}>
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, "address"]}
-                                                label="Address"
-                                                rules={[{required: true, message: "Required"}]}
-                                            >
-                                                <Input/>
+                                        <Col span={7}>
+                                            <Form.Item label="Hauptabholer">
+                                                <Form.Item
+                                                    {...restField}
+                                                    name={[name, "mainCollector"]}
+                                                    valuePropName="checked"
+                                                    noStyle
+                                                >
+                                                    <Radio onChange={() => selectMainCollector(name)}>
+                                                        Hauptabholer
+                                                    </Radio>
+                                                </Form.Item>
                                             </Form.Item>
                                         </Col>
-
-                                        <Col
-                                            span={6}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "end",
-                                                paddingTop: 4,
-                                            }}
-                                        >
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, "mainCollector"]}
-                                                valuePropName="checked"
-                                                style={{marginBottom: 0}}
-                                            >
-                                                <Checkbox>Haupt Abholer</Checkbox>
-                                            </Form.Item>
+                                        <Col span={2}>
+                                            {fields.length > 1 && <MinusCircleOutlined
+                                                onClick={() => remove(name)}
+                                                style={{ color: "#ff4d4f", cursor: "pointer" }}
+                                            />}
                                         </Col>
                                     </Row>
+
+                                    <Form.Item noStyle shouldUpdate>
+                                        {() => form.getFieldValue(["collectors", name, "source"]) === "EXISTING" ? (
+                                            <Form.Item {...restField} name={[name, "existingCollectorId"]}
+                                                label="Vorhandener Abholer"
+                                                rules={[{ required: true, message: "Bitte einen Abholer auswählen" }]}>
+                                                <Select
+                                                    showSearch
+                                                    optionFilterProp="label"
+                                                    options={collectors.map((collector) => ({
+                                                        value: collector.id,
+                                                        label: `${collector.firstName} ${collector.lastName}${collector.phone ? ` (${collector.phone})` : ""}`,
+                                                    }))}
+                                                />
+                                            </Form.Item>
+                                        ) : (
+                                            <Row gutter={16}>
+                                                <Col span={6}>
+                                                    <Form.Item {...restField} name={[name, "firstName"]} label="Vorname"
+                                                        rules={[{ required: true, message: "Pflichtfeld" }]}>
+                                                        <Input maxLength={120} />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={6}>
+                                                    <Form.Item {...restField} name={[name, "lastName"]} label="Nachname"
+                                                        rules={[{ required: true, message: "Pflichtfeld" }]}>
+                                                        <Input maxLength={120} />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={7}>
+                                                    <Form.Item {...restField} name={[name, "address"]} label="Adresse">
+                                                        <Input maxLength={250} />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={5}>
+                                                    <Form.Item {...restField} name={[name, "phone"]} label="Telefon">
+                                                        <Input maxLength={40} />
+                                                    </Form.Item>
+                                                </Col>
+                                            </Row>
+                                        )}
+                                    </Form.Item>
                                 </div>
                             ))}
-
+                            <Form.ErrorList errors={errors} />
                             <Form.Item>
-                                <Button
-                                    type="dashed"
-                                    onClick={() => add()}
-                                    block
-                                    icon={<PlusOutlined/>}
-                                >
+                                <Button type="dashed"
+                                    onClick={() => add({ source: "NEW", mainCollector: false })}
+                                    block icon={<PlusOutlined />}>
                                     Abholer hinzufügen
                                 </Button>
                             </Form.Item>
                         </>
                     )}
                 </Form.List>
-
             </Form>
         </Modal>
     );
