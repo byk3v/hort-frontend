@@ -23,7 +23,6 @@ export interface StudentDTO {
         id: string;
         name: string;
     };
-    canLeaveAlone: boolean;
     collectors: StudentCollectorDTO[];
 }
 

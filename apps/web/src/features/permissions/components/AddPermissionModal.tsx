@@ -4,8 +4,8 @@ import {useCallback, useEffect, useState} from "react";
 import {Checkbox, Col, DatePicker, Form, Input, message, Modal, Radio, Row, Select, Space, Table, TimePicker} from "antd";
 import type {ColumnsType} from "antd/es/table";
 import dayjs, {Dayjs} from "dayjs";
-import {CheckoutStudentInfo, CollectorDTO, NewPermissionRequest, Weekday} from "@kubuci-hort/types";
-import {searchStudentForCheckout} from "@/src/features/checkout/api";
+import {CollectorDTO, NewPermissionRequest, StudentDTO, Weekday} from "@kubuci-hort/types";
+import {getStudents} from "@/src/features/students/api";
 import {getCollectors} from "@/src/features/collectors/api";
 import {createNewPermission} from "../api";
 
@@ -31,7 +31,7 @@ const weekdays: {field: keyof FormValues; day: Weekday; label: string}[] = [
 
 export default function AddPermissionModal({open, onClose, onCreated}: {open: boolean; onClose: () => void; onCreated?: () => void}) {
     const [form] = Form.useForm<FormValues>();
-    const [students, setStudents] = useState<CheckoutStudentInfo[]>([]);
+    const [students, setStudents] = useState<StudentDTO[]>([]);
     const [collectors, setCollectors] = useState<CollectorDTO[]>([]);
     const [loading, setLoading] = useState(false);
     const duration = Form.useWatch("duration", form) ?? "DAILY";
@@ -49,7 +49,7 @@ export default function AddPermissionModal({open, onClose, onCreated}: {open: bo
 
     const search = useCallback(async (value: string) => {
         if (value.trim().length < 2) { setStudents([]); return; }
-        try { setStudents((await searchStudentForCheckout(value.trim())).students); }
+        try { setStudents((await getStudents({name: value.trim(), page: 0, size: 20})).items); }
         catch (error) { console.error(error); message.error("Fehler bei der Schülersuche"); }
     }, []);
 
@@ -94,21 +94,21 @@ export default function AddPermissionModal({open, onClose, onCreated}: {open: bo
         finally { setLoading(false); }
     };
 
-    const columns: ColumnsType<CheckoutStudentInfo> = [
+    const columns: ColumnsType<StudentDTO> = [
         {title: "Name", render: (_, row) => `${row.firstName} ${row.lastName}`},
-        {title: "Gruppe", dataIndex: "groupName"},
+        {title: "Gruppe", render: (_, row) => row.group.name},
     ];
 
     return <Modal open={open} onCancel={onClose} onOk={submit} confirmLoading={loading} title="Neue Vollmacht" width={850} destroyOnHidden>
         <Space orientation="vertical" size="middle" style={{width: "100%"}}>
             <Input.Search placeholder="Schüler suchen" onSearch={search} onChange={event => { if (event.target.value.length >= 2) void search(event.target.value); }}/>
-            <Table size="small" rowKey="studentId" columns={columns} dataSource={students} pagination={false}
+            <Table size="small" rowKey="id" columns={columns} dataSource={students} pagination={false}
                    rowSelection={{
                        type: "radio",
                        selectedRowKeys: selectedStudentId ? [selectedStudentId] : [],
                        onChange: (keys) => form.setFieldValue("studentId", keys[0]?.toString()),
                    }}
-                   onRow={row => ({onClick: () => form.setFieldValue("studentId", row.studentId)})}/>
+                   onRow={row => ({onClick: () => form.setFieldValue("studentId", row.id)})}/>
             <Form form={form} layout="vertical">
                 <Form.Item name="studentId" hidden rules={[{required: true, message: "Bitte ein Kind auswählen"}]}>
                     <Input/>

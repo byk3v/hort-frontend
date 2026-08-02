@@ -92,13 +92,6 @@ export default function StudentsClient() {
             ellipsis: true,
         },
         {
-            title: "Allein gehen?",
-            dataIndex: "canLeaveAlone",
-            key: "canLeaveAlone",
-            width: 140,
-            render: (value: boolean) => value ? <Tag color="green">Ja</Tag> : <Tag>Nein</Tag>,
-        },
-        {
             title: "Berechtigte Abholer",
             key: "collectorsCount",
             width: 180,

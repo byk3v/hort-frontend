@@ -5,6 +5,7 @@ import {
     TeamOutlined,
     UserOutlined,
     ClockCircleOutlined,
+    LoginOutlined,
     HomeOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
@@ -29,6 +30,7 @@ export default function Sidebar({collapsed, onToggle}: SidebarProps) {
             pathname.startsWith('/collectors') ? 'collectors' :
                 pathname.startsWith('/permissions') ? 'permissions' :
                     pathname.startsWith('/groups') ? 'groups' :
+                        pathname.startsWith('/checkin') ? 'checkin' :
                         pathname.startsWith('/checkout') ? 'checkout' : 'home';
 
     return (
@@ -59,6 +61,7 @@ export default function Sidebar({collapsed, onToggle}: SidebarProps) {
                     {key: 'students', icon: <TeamOutlined/>, label: <Link href="/students">Schülern</Link>},
                     {key: 'collectors', icon: <UserOutlined/>, label: <Link href="/collectors">Abholer</Link>},
                     {key: 'permissions', icon: <UserOutlined/>, label: <Link href="/permissions">Vollmächte</Link>},
+                    {key: 'checkin', icon: <LoginOutlined/>, label: <Link href="/checkin">Anmeldung</Link>},
                     {key: 'checkout', icon: <ClockCircleOutlined/>, label: <Link href="/checkout">Abmeldung</Link>},
                 ]}
             />
