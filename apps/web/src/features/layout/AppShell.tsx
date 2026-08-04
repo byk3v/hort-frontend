@@ -11,7 +11,7 @@ const {Content} = Layout;
 export default function AppShell({children}: { children: React.ReactNode }) {
     const {token: {colorBgContainer}} = theme.useToken();
     const [collapsed, setCollapsed] = useState(false);
-    const {userName, logout} = useAuth();
+    const {userName, hortName, logout} = useAuth();
 
     return (
         <Layout style={{minHeight: '100vh'}}>
@@ -21,7 +21,7 @@ export default function AppShell({children}: { children: React.ReactNode }) {
             />
 
             <Layout>
-                <HeaderBar title="Panel Hort" userName={userName} onLogout={logout}/>
+                <HeaderBar title="Panel Hort" userName={userName} hortName={hortName} onLogout={logout}/>
 
                 <Content style={{margin: 16}}>
                     <div

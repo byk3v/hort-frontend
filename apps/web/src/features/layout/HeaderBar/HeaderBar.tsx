@@ -14,10 +14,11 @@ const {Header} = Layout;
 export type HeaderBarProps = {
     title?: string;
     userName?: string;
+    hortName?: string;
     onLogout?: () => void | Promise<void>;
 };
 
-export default function HeaderBar({title = 'Panel Hort', userName = 'Benutzer', onLogout}: HeaderBarProps) {
+export default function HeaderBar({title = 'Panel Hort', userName = 'Benutzer', hortName = 'Hort', onLogout}: HeaderBarProps) {
 
     const userMenu = {
         items: [
@@ -56,7 +57,10 @@ export default function HeaderBar({title = 'Panel Hort', userName = 'Benutzer', 
                             icon={<UserOutlined />}
                             className={styles.avatar}
                         />
-                        <span className={styles.userName}>{userName}</span>
+                        <span className={styles.identityText}>
+                            <span className={styles.userName}>{userName}</span>
+                            <span className={styles.hortName}>{hortName}</span>
+                        </span>
                     </button>
                 </Dropdown>
             </div>
