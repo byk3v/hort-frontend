@@ -4,6 +4,7 @@ import { createContext, ReactNode, useContext, useEffect, useRef, useState } fro
 import { setAccessTokenProvider } from "@kubuci-hort/http";
 import type Keycloak from "keycloak-js";
 import type { KeycloakTokenParsed } from "keycloak-js";
+import { getCurrentUserDisplay } from "./currentUser";
 
 type Props = {
     children: ReactNode;
@@ -11,6 +12,7 @@ type Props = {
 
 type AuthContextValue = {
     userName: string;
+    hortName: string;
     roles: string[];
     logout: () => Promise<void>;
 };
@@ -34,6 +36,7 @@ function getUserName(tokenParsed?: KeycloakTokenParsed) {
 export function AuthProvider({ children }: Props) {
     const [ready, setReady] = useState(false);
     const [userName, setUserName] = useState("Benutzer");
+    const [hortName, setHortName] = useState("Hort");
     const [roles, setRoles] = useState<string[]>([]);
     const initialized = useRef(false);
     const keycloakRef = useRef<Keycloak | null>(null);
@@ -56,10 +59,9 @@ export function AuthProvider({ children }: Props) {
                 checkLoginIframe: false,
                 pkceMethod: "S256",
             })
-                .then((authenticated) => {
+                .then(async (authenticated) => {
                     console.log("KEYCLOAK AUTHENTICATED:", authenticated);
                     console.log("TOKEN PARSED:", keycloak.tokenParsed);
-                    setUserName(getUserName(keycloak.tokenParsed));
                     setRoles(keycloak.realmAccess?.roles ?? []);
 
                     setAccessTokenProvider(async () => {
@@ -69,6 +71,17 @@ export function AuthProvider({ children }: Props) {
 
                         return keycloak.token;
                     });
+
+                    try {
+                        const currentUser = await getCurrentUserDisplay();
+                        setUserName(currentUser.userName);
+                        setHortName(currentUser.hortName);
+                    } catch (error) {
+                        console.error("CURRENT USER CONTEXT ERROR:", error);
+                        setUserName(keycloak.tokenParsed?.preferred_username ?? getUserName(keycloak.tokenParsed));
+                        const token = keycloak.tokenParsed as (KeycloakTokenParsed & { hort_id?: string }) | undefined;
+                        setHortName(token?.hort_id ?? "Hort unbekannt");
+                    }
 
                     setReady(true);
                 })
@@ -83,7 +96,7 @@ export function AuthProvider({ children }: Props) {
     }
 
     return (
-        <AuthContext.Provider value={{ userName, roles, logout }}>
+        <AuthContext.Provider value={{ userName, hortName, roles, logout }}>
             {children}
         </AuthContext.Provider>
     );
