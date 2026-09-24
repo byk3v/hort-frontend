@@ -2,52 +2,60 @@
 
 ## Estado
 
-Búsqueda y confirmación iniciales en web. No implementada en mobile.
+Check-in y checkout funcionales en web sobre `/api/v1/attendance`. Mobile
+permanece como template.
 
 ## Objetivo
 
-Registrar que un estudiante abandona el centro acompañado por una persona
-autorizada o mediante permiso para salir solo.
+Registrar presencia diaria y salida de un estudiante acompañado por una persona
+autorizada o mediante autorización para salir solo.
 
 ## Actores
 
-- Usuario autenticado que gestiona la salida.
+- Usuario autenticado con rol `HORT_ADMIN` o `ASSISTANT`.
 - Estudiante.
-- Collector autorizado.
+- Collector autorizado, cuando aplica.
 
-## Flujo principal
+## Flujo de check-in
 
-1. El usuario escribe al menos dos caracteres del nombre o grupo.
-2. Tras 300 ms, se consultan coincidencias.
-3. Se muestran grupo, estado, permiso de salida autónoma y collectors del día.
-4. El usuario confirma la salida con un collector o, cuando está permitido, la
-   salida autónoma.
-5. La fila se marca como retirada y se refresca en segundo plano.
+1. El usuario abre Anmeldung.
+2. La aplicación consulta candidatos que todavía no tienen sesión diaria.
+3. El usuario registra el check-in del estudiante.
+
+## Flujo de checkout
+
+1. El usuario abre Abmeldung.
+2. La aplicación consulta estudiantes presentes hoy.
+3. Se muestran grupo, autorización de salida autónoma efectiva y collectors
+   permitidos para la hora actual.
+4. El usuario confirma salida con collector o salida autónoma.
+5. El backend cierra la sesión diaria y registra el checkout en una transacción.
 
 ## Reglas observadas
 
-- No se consulta con menos de dos caracteres.
-- `checkedOutToday` desactiva nuevas acciones de salida.
-- La salida autónoma solo aparece con `canLeaveAloneToday` y muestra su hora.
-- La confirmación siempre envía `comment: null`.
-- La salida con collector envía `collectorId` y `pickupRightId`.
+- Solo se listan estudiantes con sesión abierta para checkout.
+- No se permite checkout sin check-in previo.
+- No se permite checkout duplicado para la misma sesión.
+- La salida autónoma se deriva de `self_dismissal` y sus reglas efectivas.
+- La confirmación envía `comment: null` desde la UI actual.
 
 ## Integraciones
 
-- `GET /api/checkout/search?q=...`.
-- `POST /api/checkout/confirm`.
-- `CheckoutSearchResponse`, `CheckoutStudentInfo` y `CheckoutCollectorInfo`.
+- `GET /api/v1/attendance/check-in-candidates`.
+- `POST /api/v1/attendance/check-ins`.
+- `GET /api/v1/attendance/present-students`.
+- `POST /api/v1/attendance/check-outs`.
+- Tipos manuales de attendance/checkout en `@kubuci-hort/types`.
 
 ## Implementación
 
-- Página: `apps/web/src/app/(protected)/checkout/page.tsx`.
-- Feature: `apps/web/src/features/checkout/`.
-- Proxy: `apps/web/src/app/api/checkout/`.
-- Tipos: `packages/types/src/CheckoutSearchResponse.ts`.
+- Check-in page: `apps/web/src/app/(protected)/checkin/page.tsx`.
+- Checkout page: `apps/web/src/app/(protected)/checkout/page.tsx`.
+- Feature: `apps/web/src/features/checkin/` y `apps/web/src/features/checkout/`.
+- Proxies: `apps/web/src/app/api/v1/attendance/`.
 
 ## Pendiente
 
-- Confirmar en servidor las reglas horarias y prevenir doble envío.
-- Mostrar errores específicos de búsqueda.
 - Definir comentarios, reversión y experiencia de confirmación.
 - Implementación mobile.
+- Sustituir DTOs manuales cuando exista el cliente generado.
