@@ -2,7 +2,7 @@
 
 ## Estado
 
-Consulta inicial en web. No implementada en mobile.
+Consulta funcional en web sobre `/api/v1/groups`. Mobile permanece como template.
 
 ## Objetivo
 
@@ -10,7 +10,7 @@ Permitir consultar y buscar los grupos disponibles.
 
 ## Actores
 
-- Usuario autenticado.
+- Usuario autenticado con rol `HORT_ADMIN` o `ASSISTANT`.
 
 ## Flujo principal
 
@@ -26,7 +26,7 @@ Permitir consultar y buscar los grupos disponibles.
 
 ## Integraciones
 
-- `GET /api/groups`.
+- `GET /api/v1/groups`.
 - `GroupDTO` de `@kubuci-hort/types`.
 - Bearer token proporcionado por Keycloak.
 
@@ -34,11 +34,11 @@ Permitir consultar y buscar los grupos disponibles.
 
 - Página: `apps/web/src/app/(protected)/groups/page.tsx`.
 - Feature: `apps/web/src/features/groups/`.
-- Proxy: `apps/web/src/app/api/groups/route.ts`.
+- Proxy: `apps/web/src/app/api/v1/groups/route.ts`.
 - Tipo: `packages/types/src/group.ts`.
 
 ## Pendiente
 
-- Confirmar acceso por rol y operaciones de escritura.
 - Llevar búsqueda/paginación al backend si crece el volumen.
 - Implementación mobile.
+- Sustituir el DTO manual cuando exista el cliente generado.

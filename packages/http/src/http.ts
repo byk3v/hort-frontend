@@ -1,4 +1,5 @@
 type QueryParams = Record<string, string | number | boolean | undefined>;
+type HeaderMap = Record<string, string>;
 
 export class HttpError extends Error {
     constructor(public readonly status: number, public readonly code?: string, public readonly detail?: string) {
@@ -8,6 +9,7 @@ export class HttpError extends Error {
 }
 
 let accessTokenProvider: (() => Promise<string | undefined>) | undefined;
+const pendingGetRequests = new Map<string, Promise<unknown>>();
 
 export function setAccessTokenProvider(provider: () => Promise<string | undefined>) {
     accessTokenProvider = provider;
@@ -28,7 +30,7 @@ function buildQueryString(params?: QueryParams) {
     return query ? `?${query}` : "";
 }
 
-async function buildHeaders(extra?: HeadersInit): Promise<HeadersInit> {
+async function buildHeaders(extra: HeaderMap = {}): Promise<HeaderMap> {
     const token = await accessTokenProvider?.();
 
     return {
@@ -36,6 +38,10 @@ async function buildHeaders(extra?: HeadersInit): Promise<HeadersInit> {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...extra,
     };
+}
+
+function getRequestKey(url: string, headers: HeaderMap) {
+    return `${url}|${headers.Authorization ?? ""}`;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -53,13 +59,22 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 export const api = {
     async get<T>(url: string, params?: QueryParams): Promise<T> {
-        const res = await fetch(`${url}${buildQueryString(params)}`, {
-            method: "GET",
-            headers: await buildHeaders(),
-            cache: "no-store",
-        });
+        const fullUrl = `${url}${buildQueryString(params)}`;
+        const headers = await buildHeaders();
+        const key = getRequestKey(fullUrl, headers);
+        const pending = pendingGetRequests.get(key);
+        if (pending) return pending as Promise<T>;
 
-        return handleResponse<T>(res);
+        const request = fetch(fullUrl, {
+            method: "GET",
+            headers,
+            cache: "no-store",
+        })
+            .then((res) => handleResponse<T>(res))
+            .finally(() => pendingGetRequests.delete(key));
+
+        pendingGetRequests.set(key, request);
+        return request;
     },
 
     async post<T>(url: string, body?: unknown): Promise<T> {
